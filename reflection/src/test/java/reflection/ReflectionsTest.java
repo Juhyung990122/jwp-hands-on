@@ -23,6 +23,6 @@ class ReflectionsTest {
         final List<Class<? extends Annotation>> annotations = List.of(Controller.class, Service.class, Repository.class);
         annotations.stream()
                 .map(reflections::getTypesAnnotatedWith)
-                .forEach(System.out::println);
+                .forEach((it) -> log.info("{}", it));
     }
 }
