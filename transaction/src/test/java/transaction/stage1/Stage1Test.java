@@ -6,6 +6,7 @@ import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -108,12 +109,12 @@ class Stage1Test {
      * 격리 수준에 따라 어떤 현상이 발생하는지 테스트를 돌려 직접 눈으로 확인하고 표를 채워보자.
      * + : 발생
      * - : 발생하지 않음
-     *   Read phenomena | Non-repeatable reads
+     *   Read phenomena | 내가 읽었던 값과 다른 값이 나오는가?
      * Isolation level  |
      * -----------------|---------------------
-     * Read Uncommitted |       +
+     * Read Uncommitted |       +(응응 다른값이 나온다)
      * Read Committed   |       +
-     * Repeatable Read  |       -
+     * Repeatable Read  |       -(아니다 같은 값이 나온다)
      * Serializable     |       -
      */
     @Test
@@ -130,7 +131,7 @@ class Stage1Test {
         connection.setAutoCommit(false);
 
         // 적절한 격리 레벨을 찾는다.
-        final int isolationLevel = Connection.TRANSACTION_SERIALIZABLE;
+        final int isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
 
         // 트랜잭션 격리 레벨을 설정한다.
         connection.setTransactionIsolation(isolationLevel);

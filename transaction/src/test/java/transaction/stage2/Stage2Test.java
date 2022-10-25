@@ -37,7 +37,11 @@ class Stage2Test {
 
     /**
      * 생성된 트랜잭션이 몇 개인가?
+     * 아마도 한개?
      * 왜 그런 결과가 나왔을까?
+     * Required 니까. 부모 트랜잭션이 존재할경우 이에 합류하고, 없다면 새로운 트렌잭션을 생성하므로
+     * firstUserService에서 생성된 트랜잭션에
+     * secondUserService에서 사용하는 트랜잭션이 합류함.
      */
     @Test
     void testRequired() {
@@ -45,13 +49,15 @@ class Stage2Test {
 
         log.info("transactions : {}", actual);
         assertThat(actual)
-                .hasSize(0)
-                .containsExactly("");
+                .hasSize(1)
+                .containsExactly("transaction.stage2.FirstUserService.saveFirstTransactionWithRequired");
     }
 
     /**
      * 생성된 트랜잭션이 몇 개인가?
+     * 2개라 생각함.
      * 왜 그런 결과가 나왔을까?
+     * Requires_new 는 무조건 새로운 트랜잭션을 생성하고, 이 둘간엔 영향이 없으니까
      */
     @Test
     void testRequiredNew() {
@@ -59,27 +65,34 @@ class Stage2Test {
 
         log.info("transactions : {}", actual);
         assertThat(actual)
-                .hasSize(0)
-                .containsExactly("");
+                .hasSize(2)
+                .containsExactly("transaction.stage2.SecondUserService.saveSecondTransactionWithRequiresNew",
+                    "transaction.stage2.FirstUserService.saveFirstTransactionWithRequiredNew");
     }
 
     /**
      * firstUserService.saveAndExceptionWithRequiredNew()에서 강제로 예외를 발생시킨다.
      * REQUIRES_NEW 일 때 예외로 인한 롤백이 발생하면서 어떤 상황이 발생하는 지 확인해보자.
+     *
+     * second는 커밋되고 first에서 save는 롤백된다.
      */
     @Test
     void testRequiredNewWithRollback() {
-        assertThat(firstUserService.findAll()).hasSize(-1);
+        assertThat(firstUserService.findAll()).hasSize(0);
 
         assertThatThrownBy(() -> firstUserService.saveAndExceptionWithRequiredNew())
                 .isInstanceOf(RuntimeException.class);
 
-        assertThat(firstUserService.findAll()).hasSize(-1);
+        assertThat(firstUserService.findAll()).hasSize(1);
     }
 
     /**
      * FirstUserService.saveFirstTransactionWithSupports() 메서드를 보면 @Transactional이 주석으로 되어 있다.
      * 주석인 상태에서 테스트를 실행했을 때와 주석을 해제하고 테스트를 실행했을 때 어떤 차이점이 있는지 확인해보자.
+     *
+     * 주석이면 둘다 안열림
+     * 하나만 열려있으면 아마 REQUIRED가 디폴트니까 first에서 열린 트랜잭션에 second가 합류할 것 같음
+     *
      */
     @Test
     void testSupports() {
@@ -87,8 +100,8 @@ class Stage2Test {
 
         log.info("transactions : {}", actual);
         assertThat(actual)
-                .hasSize(0)
-                .containsExactly("");
+                .hasSize(1)
+                .containsExactly("transaction.stage2.FirstUserService.saveFirstTransactionWithSupports");
     }
 
     /**
